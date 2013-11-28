@@ -12,7 +12,7 @@ Game = {
     colorChangeFrequency: 10000,
     activeBalls: 0,
     score: 0,
-    missedBalls: 0,
+    lives: 10,
     colors: [
         'blue',
         'orange',
@@ -23,7 +23,7 @@ Game = {
     colorToCatch: null,
     addBall: function (settings) {
         // stopp too many balls being added to the stage
-        if (Game.activeBalls < 40 && Game.activeSession) {
+        if (Game.activeBalls < 20 && Game.activeSession) {
             Game.balls.push(Ball(Game.balls.length,settings).init());
             Game.updateScore();
         }
@@ -57,7 +57,7 @@ Game = {
                     Game.colorChange = lastFrame;
                 }
 
-                if(Game.missedBalls > 10) {
+                if(Game.lives < 1) {
                     Game.activeSession = false;
                     clearInterval(timer);
                     for (var i = 0; i < Game.balls.length; i++) {
@@ -76,25 +76,37 @@ Game = {
         if (ball.getAttribute('data-color') === Game.colorToCatch) {
             Game.score += 5;
         } else {
-            Game.score -= 10;
-            Game.missedBalls += 1;
+            Game.score -= 3;
+            Game.lives -= 1;
         }
         Game.ballsCleared += 1;
         Game.updateScore();
     },
     updateScore: function () {
+        console.log('go');
         var added = document.getElementById('balls-added'),
             active = document.getElementById('balls-active'),
             cleared = document.getElementById('balls-cleared'),
             score = document.getElementById('score'),
-            lifes = document.getElementById('lifes');
+            lives = document.getElementById('lives');
 
         Game.activeBalls = Game.balls.length - Game.ballsCleared;
         added.innerHTML = Game.balls.length;
         cleared.innerHTML = Game.ballsCleared;
         active.innerHTML = Game.activeBalls;
         score.innerHTML = Game.score;
-        lifes.innerHTML = 10 - Game.missedBalls;
+
+        while (lives.lastChild) {
+          lives.removeChild(lives.lastChild);
+        }
+
+        for (var i=0; i < Game.lives; i++) {
+            var node = document.createElement('li');
+            var lifeBall = document.createElement('span');
+            lifeBall.className = 'life';
+            node.appendChild(lifeBall);
+            lives.appendChild(node);
+        }
     },
     randomColor: function () {
         var color = Math.floor(Math.random() * Game.colors.length);
@@ -105,13 +117,13 @@ Game = {
         Game.balls = [];
         Game.activeBalls = 0;
         Game.ballsCleared = 0;
-        Game.missedBalls = 0;
+        Game.lives = 10;
         Game.score = 0;
         Game.activeSession = true;
         Game.lastBallDropped = +new Date;
+        Game.colorChange = +new Date,
 
         document.getElementById('play').style.display = 'none';
-
         this.stage();
         this.colorToCatch = this.randomColor();
         document.getElementById('color-to-catch').className = Game.colorToCatch;
@@ -143,7 +155,11 @@ var Ball = function (id,settings) {
             instance.setAttribute('data-color',settings.color);
             instance.ontouchstart = function (e) {
                 e.stopPropagation();
-                removeBall(id);
+                instance.className = settings.color === Game.colorToCatch ? 'ball-die good' : 'ball-die bad';
+                instance.ontouchstart = '';
+                setTimeout(function (){
+                    removeBall(id);
+                },500);
                 Game.updateCleared(this);
             }
             stage.appendChild(instance);
