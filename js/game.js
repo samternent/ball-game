@@ -13,6 +13,7 @@ Game = {
     activeBalls: 0,
     score: 0,
     lives: 10,
+    streak: 0,
     colors: [
         'blue',
         'orange',
@@ -23,7 +24,7 @@ Game = {
     colorToCatch: null,
     addBall: function (settings) {
         // stopp too many balls being added to the stage
-        if (Game.activeBalls < 20 && Game.activeSession) {
+        if (Game.activeBalls < 15 && Game.activeSession) {
             Game.balls.push(Ball(Game.balls.length,settings).init());
             Game.updateScore();
         }
@@ -64,12 +65,30 @@ Game = {
                         Game.balls[i].removeBall();
                     }
                     document.getElementById('play').style.display = 'block';
+                    Game.activeBalls = 0;
+                }
+
+                // check streak
+                if(Game.streak > 10 && Game.lives < 10) {
+                    Game.lives += 1;
+                    Game.streak = 0;
+                }
+
+                // meh... maybe get rid
+                if(Game.activeBalls > 10) {
+                    document.body.className = 'shake';
+                    document.getElementById('score').className = 'shake';
+                    Game.frameTime = 128;
+                } else {
+                    document.body.className = '';
+                    document.getElementById('score').className = '';
+                    Game.frameTime =32;
                 }
 
                 // logic end
                 lastFrame = now;
 
-            }, 16);
+            }, Game.frameTime);
         }
     },
     updateCleared: function (ball) {
@@ -121,7 +140,8 @@ Game = {
         Game.score = 0;
         Game.activeSession = true;
         Game.lastBallDropped = +new Date;
-        Game.colorChange = +new Date,
+        Game.colorChange = +new Date;
+        Game.streak = 0;
 
         document.getElementById('play').style.display = 'none';
         this.stage();
@@ -155,7 +175,15 @@ var Ball = function (id,settings) {
             instance.setAttribute('data-color',settings.color);
             instance.ontouchstart = function (e) {
                 e.stopPropagation();
-                instance.className = settings.color === Game.colorToCatch ? 'ball-die good' : 'ball-die bad';
+
+                if(settings.color === Game.colorToCatch) {
+                    instance.className = 'ball-die good';
+                    Game.streak += 1;
+                } else {
+                    instance.className = 'ball-die bad';
+                    Game.streak = 0;
+                }
+
                 instance.ontouchstart = '';
                 setTimeout(function (){
                     removeBall(id);
